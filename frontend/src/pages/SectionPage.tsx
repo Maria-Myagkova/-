@@ -55,6 +55,25 @@ const SectionPage: React.FC = () => {
     if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const hideRisPrefixSlugs = new Set([
+    "repressii",
+    "rabota-v-okb",
+    "proekty",
+    "pervyj-sputnik",
+    "polet-gagarina",
+    "nasledie",
+  ]);
+
+  const normalizeCaption = (caption?: string) => {
+    if (!caption) return "";
+    if (!hideRisPrefixSlugs.has(section.slug)) return caption;
+    const noRis = caption.replace(/^\s*Рис\.\s*/i, "").trim();
+    if (section.slug === "repressii") {
+      return noRis.replace(/^\d+\s+/, "").trim();
+    }
+    return noRis;
+  };
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-space-dark to-black text-white">
       <header className="max-w-5xl mx-auto px-4 py-4 flex items-center justify-between">
@@ -69,9 +88,7 @@ const SectionPage: React.FC = () => {
       <main className="section-rich max-w-5xl mx-auto px-4 pb-16 grid md:grid-cols-[3fr,1fr] gap-10">
         <section>
           <h1
-            className={`heading-depth text-2xl mb-3 ${
-              section.slug === "proekty" ? "font-bold text-white" : "font-semibold text-accent-gold"
-            }`}
+            className="heading-depth text-2xl mb-3 font-semibold text-accent-gold"
           >
             {section.title}
           </h1>
@@ -107,7 +124,7 @@ const SectionPage: React.FC = () => {
                           className="w-full h-auto rounded"
                         />
                         {singleImage.caption ? (
-                          <figcaption className="mt-2 text-xs text-accent-silver/80">{singleImage.caption}</figcaption>
+                          <figcaption className="mt-2 text-xs text-accent-silver/80">{normalizeCaption(singleImage.caption)}</figcaption>
                         ) : null}
                       </figure>
                     </div>
@@ -121,10 +138,13 @@ const SectionPage: React.FC = () => {
                         <div className="mt-4 grid gap-4 md:grid-cols-2">
                           {mediaSorted.map((m) =>
                             m.is_image ? (
-                              <figure key={m.id} className="bg-slate-900/70 rounded-lg p-2">
+                              <figure
+                                key={m.id}
+                                className={section.slug === "repressii" ? "self-start rounded-lg" : "self-start bg-slate-900/70 rounded-lg p-2"}
+                              >
                                 <img src={m.file_path} alt={m.caption || ""} className="w-full h-auto rounded" />
                                 {m.caption && (
-                                  <figcaption className="mt-2 text-xs text-accent-silver/80">{m.caption}</figcaption>
+                                  <figcaption className="mt-2 text-xs text-accent-silver/80">{normalizeCaption(m.caption)}</figcaption>
                                 )}
                               </figure>
                             ) : (
@@ -148,12 +168,13 @@ const SectionPage: React.FC = () => {
             })}
         </section>
 
-        <aside className="md:sticky md:top-20 h-max bg-slate-900/70 border border-accent-silver/40 rounded-xl p-4">
-          <h3 className="heading-depth text-sm font-semibold mb-3 text-accent-gold">Навигация по разделу</h3>
+        <aside className="md:sticky md:top-20 h-max bg-slate-900/70 border border-accent-silver/40 rounded-xl p-3">
+          <h3 className="heading-depth text-xs font-semibold mb-2 text-accent-gold">Навигация по разделу</h3>
           <nav className="space-y-2 text-xs">
             {section.subsections
               .slice()
               .sort((a, b) => a.sort_order - b.sort_order)
+              .filter((sub) => sub.title?.trim().length > 0)
               .map((sub) => (
                 <button
                   key={sub.id}

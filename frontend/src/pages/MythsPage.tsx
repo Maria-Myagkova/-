@@ -123,18 +123,18 @@ const MythsPage: React.FC = () => {
               <p className="text-xs text-white/60 md:text-sm">{currentMyth.description}</p>
             ) : null}
 
-            <div className="flex flex-wrap gap-4 pt-2">
+            <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:flex-wrap sm:gap-4">
               <button
                 type="button"
                 onClick={() => handleVote(true)}
-                className="rounded-full border-2 border-accent-gold px-8 py-2 text-xs font-bold uppercase tracking-widest text-accent-gold hover:bg-accent-gold/10"
+                className="w-full touch-manipulation rounded-full border-2 border-accent-gold px-8 py-3 text-xs font-bold uppercase tracking-widest text-accent-gold hover:bg-accent-gold/10 sm:w-auto sm:py-2"
               >
                 Правда
               </button>
               <button
                 type="button"
                 onClick={() => handleVote(false)}
-                className="rounded-full border-2 border-[#8b5a2b] px-8 py-2 text-xs font-bold uppercase tracking-widest text-[#c4a574] hover:bg-white/5"
+                className="w-full touch-manipulation rounded-full border-2 border-accent-gold px-8 py-3 text-xs font-bold uppercase tracking-widest text-accent-gold hover:bg-accent-gold/10 sm:w-auto sm:py-2"
               >
                 Миф
               </button>

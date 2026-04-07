@@ -59,7 +59,7 @@ const AboutPage: React.FC = () => {
 
         {content.mission ? (
           <section className="mt-20">
-            <h2 className="heading-depth text-center text-4xl font-bold text-accent-gold md:text-5xl">Миссия</h2>
+            <h2 className="heading-depth text-center text-5xl font-bold text-accent-gold md:text-6xl">Миссия</h2>
             <p className="text-justify mx-auto mt-10 max-w-3xl text-base leading-relaxed text-white/90 md:text-lg">
               {content.mission}
             </p>
@@ -68,7 +68,7 @@ const AboutPage: React.FC = () => {
 
         {relevanceItems.length > 0 ? (
           <section className="mt-20">
-            <h2 className="heading-depth text-center text-4xl font-bold text-accent-gold md:text-5xl">Актуальность</h2>
+            <h2 className="heading-depth text-center text-5xl font-bold text-accent-gold md:text-6xl">Актуальность</h2>
             <ul className="text-justify mx-auto mt-10 max-w-3xl list-disc space-y-4 pl-6 text-sm text-white/90 md:text-base md:pl-8">
               {relevanceItems.map((line, i) => (
                 <li key={i} className="leading-relaxed">
