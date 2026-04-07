@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-korolev-bg text-white antialiased;
+}
+
+main p,
+main li,
+main figcaption,
+main blockquote {
+  text-align: justify;
+}
+
+/* Убираем маркеры списков на всех страницах, кроме "Мифы" */
+main ul,
+main ol {
+  list-style: none;
+  padding-left: 0;
+}
+
+/* В разделах (кроме главной и "О проекте") жёлтый текст визуально крупнее белого */
+.section-rich .text-accent-gold {
+  font-size: calc(1em + 2pt);
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .text-justify {
+    text-align: justify;
+  }
+
+  /* Лёгкая «тень слева» у заголовков — чуть темнее основного цвета букв */
+  .heading-depth {
+    text-shadow:
+      -1px 0 0 rgba(0, 0, 0, 0.4),
+      -2px 0 1px rgba(0, 0, 0, 0.22);
+  }
+
+  /* «МИФЫ»: тень слева темнее основного фиолетового оттенка */
+  .myths-title-depth {
+    text-shadow:
+      -2px 0 0 rgba(20, 4, 44, 0.72),
+      -4px 0 0 rgba(20, 4, 44, 0.46);
+  }
+}
+
+@keyframes star-burst {
+  0% {
+    transform: translate(-50%, -50%) scale(1) rotate(0deg);
+    opacity: 1;
+  }
+  100% {
+    transform: translate(calc(-50% + var(--star-tx)), calc(-50% + var(--star-ty))) scale(0.15)
+      rotate(220deg);
+    opacity: 0;
+  }
+}
