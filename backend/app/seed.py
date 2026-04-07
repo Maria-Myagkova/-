@@ -1,0 +1,549 @@
+from __future__ import annotations
+
+import json
+import re
+
+from sqlalchemy.orm import Session
+
+from . import models
+
+
+def _svg_data_uri(title: str, accent: str) -> str:
+    # Minimal inline SVG to avoid external assets.
+    svg = f"""<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="800" viewBox="0 0 1200 800">
+  <defs>
+    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0b1220"/>
+      <stop offset="1" stop-color="{accent}"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="800" fill="url(#g)"/>
+  <circle cx="940" cy="190" r="110" fill="rgba(255,255,255,0.08)"/>
+  <circle cx="220" cy="610" r="160" fill="rgba(255,255,255,0.06)"/>
+  <path d="M560 150c70 90 110 200 110 320 0 120-40 230-110 320-70-90-110-200-110-320 0-120 40-230 110-320z" fill="rgba(255,255,255,0.10)"/>
+  <path d="M560 230c40 60 62 136 62 220 0 84-22 160-62 220-40-60-62-136-62-220 0-84 22-160 62-220z" fill="rgba(255,255,255,0.18)"/>
+  <text x="80" y="120" font-family="ui-sans-serif, system-ui, -apple-system" font-size="56" fill="rgba(255,255,255,0.92)" font-weight="700">{title}</text>
+  <text x="80" y="175" font-family="ui-sans-serif, system-ui, -apple-system" font-size="28" fill="rgba(255,255,255,0.75)">Сергей Королёв — практическая космонавтика</text>
+</svg>"""
+    # NOTE: keep it unencoded; browsers accept UTF-8 in data URIs for SVG.
+    return "data:image/svg+xml;utf8," + svg.replace("\n", "")
+
+
+def _anchorify(text: str) -> str:
+    t = text.strip().lower()
+    t = re.sub(r"[^\w\s-]", "", t, flags=re.UNICODE)
+    t = re.sub(r"\s+", "-", t, flags=re.UNICODE)
+    return t[:80] or "section"
+
+
+def _seed_polet_gagarina(db: Session, section_id: int) -> None:
+    """Несколько подразделов и архивные изображения для страницы «Первый полёт»."""
+    base = "/media/pervyj-polet"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    subs: list[tuple[str, str, str, list[tuple[str, str]]]] = [
+        (
+            "pervyj-polet-vvedenie",
+            "Первый полёт",
+            """<h3 class="text-base font-semibold text-white mb-3">Первый шаг к звёздам: роль Королёва и выбор Гагарина</h3>
+<p>12 апреля 1961 года навсегда изменило историю человечества. Но за ликованием и всемирной славой стоял титанический труд конструкторов, инженеров и, конечно, самого Главного конструктора — Сергея Павловича Королёва.</p>
+<h3 class="text-base font-semibold text-white mt-8 mb-3">Главный конструктор и его первый космонавт: выбор, который определил эпоху</h3>
+<p>Королёв лично курировал подготовку первого полёта. Вокруг будущего космонавта шли жаркие споры. Из шести отобранных лётчиков-истребителей нужно было выбрать одного. Решающую роль сыграли не только физические данные, но и психологическая устойчивость.</p>
+<blockquote class="border-l-4 border-amber-500/70 pl-4 my-6 text-white/90 italic">Свидетельство очевидца (из стенограммы «Космонавт-15 о космонавте-1»): «Никогда раньше я не задумывался об этом. Мы обсуждали технические вопросы… но не принимали во внимание внутреннее состояние будущего космонавта. Ведь заявляя о желании лететь, он должен был себе ответить на вопрос: правильно ли он распоряжается своей жизнью? И это тогда, когда нет войны, есть хорошая профессия, семья… Но он выбрал столь рискованный полёт»</blockquote>
+<p>Выбор пал на Юрия Гагарина. Королёв, обладавший уникальным чутьём на людей, разглядел в улыбчивом старшем лейтенанте не просто отличника лётной подготовки, а человека с огромной внутренней силой. Гагарин был спокоен, решителен и обладал редким качеством — сохранять ясность мысли в критической ситуации.</p>""",
+            [],
+        ),
+        (
+            "dokumenty-put-k-poletu",
+            "Документы: путь к полёту",
+            "<p>Архивные материалы личного дела и учёбы Юрия Гагарина.</p>",
+            [
+                ("01.png", "Портрет Ю.А. Гагарина"),
+                ("02.png", "Аттестация лейтенанта Гагарина, 1957–1959"),
+                ("03.png", "Автобиография курсанта Чкаловского училища"),
+                ("04.png", "Выписка из экзаменационных ведомостей, 1955–1957"),
+                ("05.png", "Записи о званиях и приказах"),
+                ("06.png", "Послужной список, воинские звания"),
+            ],
+        ),
+        (
+            "nevidimye-tekhnologii",
+            "Невидимые технологии: кодовый замок и конверт с секретом",
+            """<p>Королёв и его команда (в частности, Б.В. Раушенбах) понимали: космос непредсказуем. Существовал серьёзный риск, что космонавт под воздействием стресса или невесомости может начать действовать неадекватно и взять управление на себя в неподходящий момент.</p>
+<p>Чтобы этого избежать, инженеры пошли на хитрость:</p>
+<ul class="list-disc pl-5 space-y-2 my-4">
+<li>Система ручного управления кораблём «Восток» была намеренно заблокирована кодовым замком.</li>
+<li>Код от замка не сообщали космонавту вслух.</li>
+<li>Цифры были напечатаны на листке бумаги, заклеенном в конверт, а конверт положили в настенный карман кабины.</li>
+</ul>
+<p>Логика была жёсткой, но разумной: если космонавт в полёте сообразит найти конверт, вскрыть его, ввести код и включить управление — значит, его рассудок ясен, и он способен пилотировать. «Любопытно было узнать, доставал ли Гагарин конверт?» — задавался вопросом один из создателей системы. История умалчивает, но сам факт этой меры говорит о той колоссальной ответственности, которую нёс Королёв за жизнь пилота.</p>
+<h3 class="text-base font-semibold text-white mt-8 mb-3">Как Королёв «дал добро»: полётное задание и приказ министра</h3>
+<p>Подготовка шла в обстановке строжайшей секретности. Сохранились уникальные документы той эпохи:</p>
+<ol class="list-decimal pl-5 space-y-2 my-4">
+<li><strong>Полётное задание Гагарина:</strong> Вопреки легендам, в нём было указано чёткое время — 1 час 46 минут (а не 108 минут, как часто пишут после округления). Именно столько должен был длиться первый виток.</li>
+</ol>""",
+            [],
+        ),
+        (
+            "poletnoe-zadanie-i-prikaz",
+            "Полётное задание и приказ министра",
+            "<p>Утверждённые документы: полётное задание и приказ Министра обороны СССР от 12 апреля 1961 года.</p>",
+            [("07.png", "Полётное задание (в т.ч. время 1 ч 46 мин)"), ("08.png", "Приказ Министра обороны СССР № 77")],
+        ),
+        (
+            "hronika-poleta",
+            "Хроника полёта: голос Гагарина и контроль Королёва",
+            """<p>Для Королёва это был не просто приказ. Это был экзамен всей его жизни. Ракета Р-7, корабль «Восток» — его детище — должны были не подвести.</p>
+<h3 class="text-base font-semibold text-white mt-6 mb-3">Хроника полёта: голос Гагарина и контроль Королёва</h3>
+<p>Королёв находился на командном пункте, напряжённо вслушиваясь в эфир. Каждое слово Гагарина было на вес золота.</p>
+<p><strong>Стенограмма переговоров:</strong></p>
+<ul class="list-disc pl-5 space-y-2 my-4">
+<li>09:52 (мск). Гагарин над Южной Америкой: «Полёт проходит нормально, чувствую себя хорошо».</li>
+<li>10:15 (мск). Гагарин над Африкой: «Полёт протекает нормально, состояние невесомости переношу хорошо».</li>
+</ul>
+<p>Самое тревожное время — это возвращение. Никто до конца не знал, как поведёт себя человек при входе в плотные слои атмосферы. Но Гагарин справился. Корабль «Восток» совершил посадку в заданном районе (хотя космонавт приземлился на парашюте отдельно от капсулы — эту деталь тогда скрыли).</p>
+<p>Услышав доклад Гагарина: «Приземление прошло нормально, чувствую себя хорошо, травм и ушибов не имею», — Королёв, по воспоминаниям очевидцев, впервые позволил себе выдохнуть и улыбнуться.</p>""",
+            [("09.png", "Ю.А. Гагарин в скафандре перед полётом")],
+        ),
+        (
+            "chestvovanie-nachalo",
+            "Чествование героев: встреча с Гагариным на предприятии Королёва",
+            """<p>Королёв понимал: успех — это труд тысяч людей. Через день после полёта он организовал встречу с Гагариным прямо на своём предприятии (ОКБ-1).</p>
+<p class="italic text-white/95 pl-3 border-l-2 border-amber-500/50">Из воспоминаний инженера: «На встречу приехал президент Академии наук М.В. Келдыш,</p>""",
+            [],
+        ),
+        (
+            "chestvovanie-okb-foto",
+            "На ОКБ-1",
+            "<p>Гости и коллектив предприятия.</p>",
+            [("10.png", "Анкетные данные и биография (фрагмент личного дела)"), ("11.png", "С.П. Королёв и Ю.А. Гагарин")],
+        ),
+        (
+            "chestvovanie-okonchanie",
+            "Люди и трибуна",
+            """<p class="italic text-white/95 pl-3 border-l-2 border-amber-500/50">Главнокомандующий ВВС К.А. Вершинин и лётчики… Гости стояли на сделанной наспех трибуне, а мы все — вокруг… Стояли на дорогах, у открытых окон, на крышах… На предприятии работали тысячи человек — и все пришли».</p>
+<p>Это был жест глубочайшего уважения. Королёв показал своим инженерам и рабочим живого Гагарина — того, кто доверил им свою жизнь. Сам Главный конструктор в те дни ещё оставался «секретным» — в газетах его называли просто «Главный конструктор», без фамилии.</p>""",
+            [],
+        ),
+        (
+            "itog-pervogo-poleta",
+            "Итог: что дал полёт Гагарина для Королёва и мира?",
+            """<p>Первый полёт человека в космос стал для Королёва не просто победой. Это был пройденный психологический рубеж.</p>
+<p>Как написано в одном из отчётов: «Человек может сохранять работоспособность и нормальное психическое состояние на всех этапах космического полёта — при взлёте на ракете, в длительной невесомости и тогда, когда спускаемый аппарат, словно метеор, в окружении раскалённой плазмы движется в атмосфере Земли».</p>
+<p>Королёв и Гагарин стали символами начала космической эры. Их отношения были отношениями Учителя и Ученика, Отца и Сына — при всей строгости и секретности того времени. Гагарин был для Королёва не просто «пилотом», а тем самым первым человеком, которому он, Главный конструктор, доверил свою мечту.</p>""",
+            [("12.png", "Ю.А. Гагарин — символ первого полёта человека в космос")],
+        ),
+    ]
+
+    for order, (anchor, title, html, media_list) in enumerate(subs):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def _seed_pervyj_sputnik(db: Session, section_id: int) -> None:
+    from .sputnik_content import SPUTNIK_SUBSECTIONS
+
+    base = "/media/pervyj-sputnik"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    for order, (anchor, title, html, media_list) in enumerate(SPUTNIK_SUBSECTIONS):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def _seed_repressii(db: Session, section_id: int) -> None:
+    from .repressii_content import REPRESSII_SUBSECTIONS
+
+    base = "/media/repressii"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    for order, (anchor, title, html, media_list) in enumerate(REPRESSII_SUBSECTIONS):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def _seed_okb(db: Session, section_id: int) -> None:
+    from .okb_content import OKB_SUBSECTIONS
+
+    base = "/media/okb"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    for order, (anchor, title, html, media_list) in enumerate(OKB_SUBSECTIONS):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def _seed_nasledie(db: Session, section_id: int) -> None:
+    from .nasledie_content import NASLEDIE_SUBSECTIONS
+
+    base = "/media/nasledie"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    for order, (anchor, title, html, media_list) in enumerate(NASLEDIE_SUBSECTIONS):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def _seed_proekty(db: Session, section_id: int) -> None:
+    from .proekty_content import PROEKTY_SUBSECTIONS
+
+    base = "/media/proekty"
+
+    def mf(sub_id: int, path: str, caption: str, order: int) -> models.MediaFile:
+        return models.MediaFile(
+            subsection_id=sub_id,
+            file_path=f"{base}/{path}",
+            caption=caption,
+            is_image=True,
+            sort_order=order,
+        )
+
+    for order, (anchor, title, html, media_list) in enumerate(PROEKTY_SUBSECTIONS):
+        sub = models.Subsection(
+            section_id=section_id,
+            anchor_name=anchor,
+            title=title,
+            content_html=html,
+            sort_order=order,
+        )
+        db.add(sub)
+        db.flush()
+        for j, (path, cap) in enumerate(media_list):
+            db.add(mf(sub.id, path, cap, j))
+
+
+def seed_if_empty(db: Session) -> None:
+    # If already seeded (at least one section), do nothing.
+    if db.query(models.Section).first() is not None:
+        return
+
+    # Quote
+    db.add(
+        models.Quote(
+            text="Космонавтика имеет безграничное будущее, её перспективы беспредельны как сама вселенная",
+            author="Сергей Королёв",
+            is_active=True,
+        )
+    )
+
+    from .timeline_content import TIMELINE_SEED
+
+    timeline = TIMELINE_SEED
+    for i, (year, title, short_desc, desc, is_central) in enumerate(timeline):
+        db.add(
+            models.TimelineEvent(
+                year=year,
+                title=title,
+                description=desc,
+                short_description=short_desc,
+                type=None,
+                is_central=is_central,
+                sort_order=i,
+            )
+        )
+
+    # About (goal/sources/team)
+    db.add(
+        models.AboutContent(
+            goal="ЦЕЛЬ: раскрыть историю освоения космоса через жизнь Сергея Королёва, используя ключевые факты, архивные документы и экспонаты, чтобы сделать её понятной и интересной широкой аудитории.",
+            mission="МИССИЯ: показать, что история космоса — это не только развитие технологий, но и судьбы людей, стоящих за этими достижениями.",
+            relevance="- Роль выдающихся личностей в развитии космонавтики, таких как Сергей Королёв, недостаточно раскрыта для широкой аудитории.\n- Изучение истории через биографию конкретного человека делает материал более понятным и целостным.\n- Использование фактов, документов и экспонатов способствует более глубокому восприятию информации.",
+            sources="https://www.roscosmos.ru/poehali60/",
+            team_members=json.dumps(
+                [
+                    {
+                        "name": "Мария Мягкова",
+                        "role": "Fullstack-разработчик\nГлавный редактор",
+                        "photo_url": "/media/team-maria.png",
+                    },
+                    {
+                        "name": "Злата Бортникова",
+                        "role": "Креативный директор\nДизайнер\nКонтент-менеджер",
+                        "photo_url": "",
+                    },
+                    {
+                        "name": "Кристина Херел",
+                        "role": "Фотограф\nНаучный редактор",
+                        "photo_url": "",
+                    },
+                ],
+                ensure_ascii=False,
+            ),
+        )
+    )
+
+    # Мифы: списки «Правда» / «Миф» (см. myths_data.py)
+    from .myths_data import CATS, MYTHS_FALSE, MYTHS_TRUE
+
+    sort_order = 0
+    for title in MYTHS_TRUE:
+        db.add(
+            models.Myth(
+                title=title,
+                description="Утверждение из списка «Правда».",
+                truth="По справочным и архивным данным формулировка верна.",
+                category=CATS[sort_order % 3],
+                is_true=True,
+                votes_for_true=0,
+                votes_for_false=0,
+                sort_order=sort_order,
+            )
+        )
+        sort_order += 1
+    for title in MYTHS_FALSE:
+        db.add(
+            models.Myth(
+                title=title,
+                description="Утверждение из списка «Миф».",
+                truth="Это распространённое заблуждение или искажение фактов.",
+                category=CATS[sort_order % 3],
+                is_true=False,
+                votes_for_true=0,
+                votes_for_false=0,
+                sort_order=sort_order,
+            )
+        )
+        sort_order += 1
+
+    # Sections (as earlier) + legacy subsections/media + quiz
+    sections_data = [
+        (
+            "repressii",
+            "Репрессии",
+            "Арест, Колыма и работа в «шарашке»",
+            "В 1938 году Королёв был арестован по обвинению во вредительстве. Год провёл в Бутырской тюрьме, затем этапирован в Колыму, где работал на золотых приисках. Благодаря ходатайствам летчика М.М. Громова и конструктора А.Н. Туполева в 1940 году его перевели в московскую «шарашку» (ЦКБ-29). Там он продолжал разработки, а в 1944 году был досрочно освобождён. Этот опыт закалил его, но подорвал здоровье.",
+            "#A3A3A3",
+        ),
+        (
+            "rabota-v-okb",
+            "Работа в ОКБ",
+            "ОКБ-1 — главное конструкторское бюро Королёва",
+            "ОКБ-1 (ныне РКК «Энергия») стало кузницей кадров и главным центром ракетно-космической промышленности. Здесь Королёв объединил талантливых инженеров, создал систему управления, испытательные стенды. Режим работы был ненормированным: Королёв часто оставался ночевать на предприятии, лично вникая во все детали.",
+            "#FB7185",
+        ),
+        (
+            "proekty",
+            "Проекты",
+            "Лунная программа, тяжёлые ракеты и дальние цели",
+            "Королёв мечтал о полёте на Марс и создании тяжёлых межпланетных кораблей. Он разрабатывал проект «Север» (пилотируемый облёт Луны), лунную программу Н1-Л3, сверхтяжёлую ракету Н1. К сожалению, после его смерти программа была свёрнута, но наработки легли в основу современных «Союзов» и «Прогрессов».",
+            "#34D399",
+        ),
+        (
+            "pervyj-sputnik",
+            "Первый спутник",
+            "4 октября 1957 года — начало космической эры",
+            "«Спутник-1» весил всего 83,6 кг и проработал 3 месяца, передавая радиосигналы. Запуск потряс мир и стал мощным пропагандистским успехом СССР. Королёв настоял на использовании ракеты Р-7, разработанной для военных целей, но адаптированной под мирные задачи. Спутник открыл дорогу к Луне, Марсу и Венере.",
+            "#60A5FA",
+        ),
+        (
+            "polet-gagarina",
+            "Первый полёт",
+            "12 апреля 1961 года — первый человек в космосе",
+            "Полёт Юрия Гагарина на корабле «Восток-1» длился 108 минут. Королёв лично контролировал каждый этап: от выбора кандидатов до послеполётного обследования. Гагарин стал символом советской космонавтики, но именно Королёв был «главным конструктором», обеспечившим успех. Перед стартом Королёв сказал: «Поехали!» — фраза стала легендарной.",
+            "#F59E0B",
+        ),
+        (
+            "nasledie",
+            "Наследие",
+            "То, что Королёв оставил мировой космонавтике",
+            "Сергей Павлович Королёв создал научно-техническую базу для пилотируемых полётов, автоматических станций и ракет-носителей. Под его руководством были разработаны ракеты Р-7, до сих пор используемые в модификациях. Он воспитал плеяду инженеров и конструкторов (В.П. Мишин, Б.Е. Черток, М.К. Янгель и др.). Благодаря Королёву СССР стал лидером в космосе. Его имя носят научные институты, города, кратеры на Луне и Марсе.",
+            "#C084FC",
+        ),
+    ]
+
+    quiz = {
+        "nasledie": [
+            ("Какая ракета, созданная Королёвым, до сих пор используется в модификациях?", ("Р-7", "Н-1", "Протон"), 1),
+            ("Кто из перечисленных не был учеником Королёва?", ("Б.Е. Черток", "М.К. Янгель", "С.П. Королёв (сам себе)"), 3),
+            ("В честь Королёва назван кратер на...", ("Луне", "Марсе", "Венере"), 1),
+            ("Какое научное учреждение носит имя Королёва?", ("РКК «Энергия»", "ЦПК им. Гагарина", "ИМБП"), 1),
+            ("Какое событие стало символом лидерства СССР в космосе благодаря Королёву?", ("Запуск первого спутника", "Первый полёт", "Выход в открытый космос"), 1),
+        ],
+        "polet-gagarina": [
+            (
+                "Сколько времени было указано в полётном задании Гагарина для первого витка?",
+                ("1 час 46 минут", "108 минут", "90 минут"),
+                1,
+            ),
+            ("Какую фразу Королёв сказал перед стартом?", ("Поехали!", "Ключ на старт!", "С Богом!"), 1),
+            ("Корабль, на котором летал Гагарин, назывался:", ("Восток-1", "Союз-1", "Восход-2"), 1),
+            ("Кто был дублёром Гагарина?", ("Герман Титов", "Алексей Леонов", "Валентина Терешкова"), 1),
+            ("Какой позывной был у Гагарина?", ("Кедр", "Сокол", "Байкал"), 1),
+        ],
+        "pervyj-sputnik": [
+            ("Какая дата запуска «Спутника-1»?", ("4 октября 1957", "12 апреля 1961", "3 ноября 1957"), 1),
+            ("Сколько весил первый спутник?", ("83,6 кг", "125 кг", "50 кг"), 1),
+            ("Какая ракета вывела спутник на орбиту?", ("Р-7", "Р-5", "Р-16"), 1),
+            ("Как долго проработал «Спутник-1»?", ("3 месяца", "1 месяц", "6 месяцев"), 1),
+            ("Какое событие символизировал запуск спутника?", ("Начало космической эры", "Первый полёт человека", "Первую высадку на Луну"), 1),
+        ],
+        "proekty": [
+            ("Как называлась лунная программа, разрабатывавшаяся под руководством Королёва?", ("Н1-Л3", "Союз-Л", "Луна-1"), 1),
+            ("Какую сверхтяжёлую ракету создавал Королёв?", ("Н1", "Энергия", "Сатурн-5"), 1),
+            ("Проект «Север» предполагал:", ("Облёт Луны с человеком", "Высадку на Марс", "Создание орбитальной станции"), 1),
+            ("Какая современная ракета-носитель базируется на разработках Королёва?", ("Союз-2", "Ангара", "Протон-М"), 1),
+            ("Какую планету Королёв хотел достичь в первую очередь?", ("Марс", "Венеру", "Луну"), 1),
+        ],
+        "rabota-v-okb": [
+            ("Как называлось ОКБ Королёва (современное название)?", ("РКК «Энергия»", "ЦСКБ «Прогресс»", "КБ «Салют»"), 1),
+            ("Где располагалось ОКБ-1?", ("Подлипки (ныне Королёв)", "Москва (центр)", "Химки"), 1),
+            ("Какой метод управления Королёв внедрил в КБ?", ("Единоначалие и личный контроль", "Коллегиальность", "Делегирование"), 1),
+            ("Кто стал преемником Королёва на посту главного конструктора?", ("В.П. Мишин", "М.К. Янгель", "В.Н. Челомей"), 1),
+            ("В каком году Королёв был назначен главным конструктором ОКБ-1?", ("1946", "1950", "1955"), 1),
+        ],
+        "repressii": [
+            ("В каком году Королёв был арестован?", ("1938", "1937", "1939"), 1),
+            ("Где Королёв отбывал наказание после Бутырской тюрьмы?", ("Колыма", "Воркута", "Соловки"), 1),
+            ("Кто из известных авиаконструкторов помог переводу Королёва в «шарашку»?", ("А.Н. Туполев", "С.В. Ильюшин", "А.С. Яковлев"), 1),
+            ("В каком году Королёв был освобождён?", ("1944", "1942", "1946"), 1),
+            ("Где находилась «шарашка», в которой работал Королёв?", ("Москва (ЦКБ-29)", "Казань", "Омск"), 1),
+        ],
+    }
+
+    for idx, (slug, title, short_desc, full_text, accent) in enumerate(sections_data):
+        image_url = _svg_data_uri(title, accent)
+        section = models.Section(
+            slug=slug,
+            title=title,
+            short_overview=short_desc,
+            short_description=short_desc,
+            image_url=image_url,
+            rocket_position=str(idx),
+            sort_order=idx,
+        )
+        db.add(section)
+        db.flush()  # assign id
+
+        if slug == "polet-gagarina":
+            _seed_polet_gagarina(db, section.id)
+        elif slug == "pervyj-sputnik":
+            _seed_pervyj_sputnik(db, section.id)
+        elif slug == "proekty":
+            _seed_proekty(db, section.id)
+        elif slug == "repressii":
+            _seed_repressii(db, section.id)
+        elif slug == "rabota-v-okb":
+            _seed_okb(db, section.id)
+        elif slug == "nasledie":
+            _seed_nasledie(db, section.id)
+        else:
+            subsection = models.Subsection(
+                section_id=section.id,
+                anchor_name=_anchorify(title),
+                title=title,
+                content_html=f"<p>{full_text}</p>",
+                sort_order=0,
+            )
+            db.add(subsection)
+            db.flush()
+            db.add(
+                models.MediaFile(
+                    subsection_id=subsection.id,
+                    file_path=image_url,
+                    caption="Иллюстрация (заглушка)",
+                    is_image=True,
+                    sort_order=0,
+                )
+            )
+
+        for q_idx, (question, options, correct) in enumerate(quiz[slug]):
+            db.add(
+                models.QuizQuestion(
+                    section_id=section.id,
+                    question=question,
+                    option1=options[0],
+                    option2=options[1],
+                    option3=options[2],
+                    correct_option=correct,
+                    explanation=None,
+                    sort_order=q_idx,
+                )
+            )
+
+    db.commit()
+

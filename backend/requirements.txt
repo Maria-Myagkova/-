@@ -1,0 +1,10 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+alembic
+psycopg2-binary
+pydantic-settings
+sqladmin
+python-multipart
+psycopg2-binary==2.9.9
+python-dotenv==1.0.0
