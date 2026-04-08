@@ -15,25 +15,16 @@ type Props = {
   sections: SectionLink[];
 };
 
-/** Слева — силуэт ракеты, справа — «шахматные» кнопки (как в макете). */
 const NAV_DELAY_MS = 480;
 
 const RocketNav: React.FC<Props> = ({ sections }) => {
   const navigate = useNavigate();
   const ordered = sections.slice().sort((a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0));
 
-  const alignForIndex = (idx: number, total: number) => {
-    // снизу вверх: центр → право → лево → … (зигзаг)
-    const pattern: Array<"center" | "end" | "start"> = ["center", "end", "start", "end", "start", "end"];
-    const a = pattern[idx % pattern.length];
-    if (a === "center") return "self-center";
-    if (a === "end") return "self-end";
-    return "self-start";
-  };
-
   return (
-    <div className="w-full max-w-5xl mx-auto flex flex-col md:flex-row gap-12 md:gap-16 items-stretch min-h-[600px] md:min-h-[640px]">
-      <div className="flex justify-center md:justify-start md:w-[260px] shrink-0">
+    <div className="w-full max-w-7xl mx-auto flex flex-col md:flex-row gap-2 md:gap-2 items-center md:items-start">
+      {/* Ракета */}
+      <div className="flex justify-center md:justify-end md:w-[300px] shrink-0 md:mr-2">
         <div className="w-40 md:w-52 h-[min(92vh,720px)] relative opacity-95 drop-shadow-[-12px_8px_24px_rgba(0,0,0,0.55)]">
           <svg
             aria-hidden
@@ -67,7 +58,6 @@ const RocketNav: React.FC<Props> = ({ sections }) => {
             />
             <path d="M104 800c-28 22-50 50-58 92 40 18 70 16 92-2 4-34-6-64-34-90z" fill="url(#hull)" />
             <path d="M216 800c28 22 50 50 58 92-40 18-70 16-92-2-4-34 6-64 34-90z" fill="url(#hull)" />
-            {/* Smooth transition from hull to nozzle block */}
             <path
               d="M128 884c8-22 22-34 32-34s24 12 32 34v42c0 18-14 32-32 32s-32-14-32-32v-42z"
               fill="url(#hull)"
@@ -76,9 +66,13 @@ const RocketNav: React.FC<Props> = ({ sections }) => {
         </div>
       </div>
 
-      <div className="flex-1 flex flex-col justify-center gap-8 md:gap-10 lg:gap-12 py-6 md:py-8">
+      {/* Кнопки - левые и правые сдвинуты навстречу ДРУГ ДРУГУ В 10 РАЗ БЛИЖЕ */}
+      <div className="flex-1 flex flex-col justify-center gap-2 md:gap-2 py-6 md:py-8">
         {ordered.map((s, idx) => (
-          <div key={s.slug} className={`w-full max-w-xl ${alignForIndex(idx, ordered.length)}`}>
+          <div 
+            key={s.slug} 
+            className={idx % 2 === 0 ? "self-start translate-x-32 md:translate-x-48" : "self-end -translate-x-32 md:-translate-x-48"}
+          >
             <a
               href={`/sections/${s.slug}`}
               onClick={(e) => {
@@ -87,7 +81,7 @@ const RocketNav: React.FC<Props> = ({ sections }) => {
                 burstStarSparklesAlongElement(e.currentTarget);
                 window.setTimeout(() => navigate(`/sections/${s.slug}`), NAV_DELAY_MS);
               }}
-              className="inline-block min-w-[220px] md:min-w-[280px] rounded-full border-[3px] border-accent-copper bg-white px-6 py-3 text-center text-accent-copper uppercase tracking-wide text-sm md:text-base font-bold shadow-sm hover:bg-amber-50 transition-colors cursor-pointer"
+              className="inline-block min-w-[220px] md:min-w-[260px] lg:min-w-[280px] rounded-full border-[3px] border-accent-copper bg-white px-6 py-3 text-center text-accent-copper uppercase tracking-wide text-sm md:text-base font-bold shadow-sm hover:bg-amber-50 transition-colors cursor-pointer"
             >
               {s.title}
             </a>

@@ -49,12 +49,13 @@ def get_db() -> Session:
 
 @app.on_event("startup")
 def on_startup() -> None:
-    # # Заполняем базу данными, если пустая
-    # db = SessionLocal()
-    # try:
-    #     seed_if_empty(db)
-    # finally:
-    #     db.close()
+    # Заполняем базу данными, если она пустая (первый запуск / новая БД)
+    db = SessionLocal()
+    try:
+        seed_if_empty(db)
+        db.commit()
+    finally:
+        db.close()
     admin.setup_admin(app)
 
 

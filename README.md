@@ -1,18 +1,16 @@
-# Веб-сайт «Сергей Королёв — основоположник практической космонавтики»
+# Веб‑сайт «Сергей Королёв — основоположник практической космонавтики»
 
 Проект состоит из двух частей:
 
-- `backend` — API на FastAPI + PostgreSQL + SQLAlchemy + SQLAdmin
+- `backend` — API на FastAPI + SQLAlchemy + SQLAdmin  
+  По умолчанию используется **SQLite** (файл `test.db` в корне проекта).
 - `frontend` — SPA на React + Vite + Tailwind CSS
 
 ## Что нужно установить
 
-Перед запуском/выгрузкой установите:
-
-- `Git` — для загрузки кода и деплоя через репозиторий
-- `Python 3.11+` — для backend
-- `Node.js 18+` и `npm` — для frontend
-- `PostgreSQL 14+` — база данных backend
+- `Git`
+- `Python 3.11+`
+- `Node.js 18+` и `npm`
 
 Проверка версий:
 
@@ -25,7 +23,7 @@ npm --version
 
 ## Локальный запуск
 
-### 1) Backend
+### Backend
 
 ```bash
 cd backend
@@ -33,11 +31,6 @@ python -m venv .venv
 # Windows PowerShell
 .venv\Scripts\Activate.ps1
 pip install -r requirements.txt
-```
-
-Настройте строку подключения к БД в `backend/app/database.py` (`DATABASE_URL`), затем:
-
-```bash
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -46,7 +39,7 @@ uvicorn app.main:app --reload --port 8000
 - API: `http://localhost:8000/docs`
 - Админка: `http://localhost:8000/admin`
 
-### 2) Frontend
+### Frontend
 
 ```bash
 cd frontend
@@ -54,85 +47,136 @@ npm install
 npm run dev
 ```
 
-По умолчанию frontend работает с backend по адресу `http://localhost:8000`.
+По умолчанию frontend ходит в backend по адресу `http://localhost:8000`.
 
-## Как выгрузить (деплой) сайт
+## Где менять адрес backend для фронтенда
 
-Ниже самый простой и стабильный вариант:
+Во фронтенде используется переменная окружения:
 
-- frontend на `Vercel`
-- backend + PostgreSQL на `Render`
+- `VITE_API_BASE_URL`
 
-### Шаг 1. Подготовьте GitHub-репозиторий
+Пример для локальной разработки (не обязателен, потому что есть дефолт `http://localhost:8000`):
 
 ```bash
-git init
-git add .
-git commit -m "Initial project setup"
-git branch -M main
-git remote add origin <ВАШ_GITHUB_URL>
-git push -u origin main
+cd frontend
+$env:VITE_API_BASE_URL="http://localhost:8000"
+npm run dev
 ```
 
-### Шаг 2. Деплой backend на Render
+## Важно про контент и базы данных
 
-1. Зарегистрируйтесь на [Render](https://render.com/) и подключите GitHub.
-2. Создайте `PostgreSQL` сервис в Render.
-3. Создайте `Web Service` из папки `backend`.
-4. Укажите:
-   - Build Command: `pip install -r requirements.txt`
-   - Start Command: `uvicorn app.main:app --host 0.0.0.0 --port 10000`
-5. В переменных окружения добавьте `DATABASE_URL` (из созданной БД Render).
-6. После деплоя получите URL вида `https://your-backend.onrender.com`.
+### Откуда берётся контент
 
-### Шаг 3. Деплой frontend на Vercel
+Большая часть контента создаётся при первом запуске backend через сидинг (`seed_if_empty`) из файлов:
 
-1. Зарегистрируйтесь на [Vercel](https://vercel.com/) и подключите GitHub.
-2. Импортируйте проект, в качестве Root Directory выберите `frontend`.
-3. Добавьте переменную окружения:
-   - `VITE_API_BASE_URL=https://your-backend.onrender.com`
-4. Запустите деплой.
-5. Получите публичный URL вида `https://your-site.vercel.app`.
+- `backend/app/seed.py`
+- `backend/app/*_content.py`
 
-### Шаг 4. Проверка после выгрузки
+### Почему вы можете “не видеть изменения”
 
-- Откройте главную страницу и проверьте переходы по разделам.
-- Проверьте `/about` и `/myths`.
-- На `Мифы` проверьте, что голосование отправляется на backend.
-- Проверьте загрузку изображений в разделах.
+Если база уже была заполнена, то сидинг **не перезапишет** данные автоматически.
 
-## Важно про контент
+Есть 2 рабочих сценария:
 
-Контент разделов берется из seed-данных backend (`backend/app/*_content.py` и `backend/app/seed.py`).
+#### Вариант А (проще): очистить/пересоздать БД SQLite
 
-Если вы меняете тексты/подписи и не видите изменения:
+1. Остановите backend.
+2. Удалите файл `test.db` в корне репозитория.
+3. Запустите backend снова — база создастся заново и применится сидинг.
 
-1. Перезапустите backend.
-2. Если данные уже были засеяны в БД, очистите таблицы или базу и заново запустите backend, чтобы сработал `seed_if_empty`.
+#### Вариант Б: править данные в админке
 
-## Последние крупные правки
+1. Запустите backend.
+2. Откройте `http://localhost:8000/admin`
+3. Найдите таблицу/модель `AboutContent` (или нужную вам сущность) и отредактируйте поля.
 
-За последние итерации в проекте были внесены большие изменения контента и отображения:
+### Как “вынести” сайт (деплой) и что делать с БД
 
-- выровнены заголовки и стили на страницах `О проекте`, `Работа в ОКБ`, `Проекты`, `Репрессии`, `Наследие`, `Первый полёт`;
-- переработаны блоки текстов и подписи к изображениям (в т.ч. очистка префикса `Рис.`);
-- обновлена структура разделов `Наследие` и `Работа в ОКБ` (новые подзаголовки, отступы, порядок блоков);
-- улучшена навигация по разделам (скрытие пустых пунктов);
-- внесены мобильные и визуальные правки карточек изображений и кнопок на странице `Мифы`.
+Ниже два подхода. Для учебного/портфолио проекта обычно хватает **Варианта 1**.
 
-Важно: большинство этих изменений находятся в seed-контенте backend.  
-Чтобы увидеть актуальный результат после обновлений, обычно нужно:
+#### Вариант 1 (самый простой): frontend отдельно + backend отдельно, БД PostgreSQL
 
-1. Перезапустить backend.
-2. Пересоздать/очистить БД и заново выполнить seed (если база уже была заполнена ранее).
+- **Frontend**: Vercel
+- **Backend**: Render / Railway / любой VPS
+- **База данных**: Managed PostgreSQL (Render/Railway/Supabase/Neon)
+
+Что нужно сделать по шагам:
+
+1) **Залить проект на GitHub**
+
+```bash
+git add .
+git commit -m "Deploy-ready"
+git push
+```
+
+2) **Поднять PostgreSQL**
+
+Создайте PostgreSQL в выбранном сервисе и получите строку подключения вида:
+
+`postgresql+psycopg2://USER:PASSWORD@HOST:PORT/DBNAME`
+
+3) **Переключить backend с SQLite на PostgreSQL**
+
+В файле `backend/app/database.py` замените `DATABASE_URL` на строку PostgreSQL и уберите `connect_args` (они нужны только для SQLite).
+
+Также установите драйвер:
+
+```bash
+cd backend
+pip install psycopg2-binary
+```
+
+4) **Деплой backend**
+
+Для Render (пример):
+
+- Build Command: `pip install -r requirements.txt`
+- Start Command: `uvicorn app.main:app --host 0.0.0.0 --port 10000`
+- Environment variables:
+  - `DATABASE_URL` (ваша строка PostgreSQL)
+
+5) **Деплой frontend**
+
+На Vercel:
+
+- Root Directory: `frontend`
+- Environment variables:
+  - `VITE_API_BASE_URL=https://<your-backend-domain>`
+
+6) **Проверка**
+
+- Откройте сайт на Vercel
+- Проверьте страницы: главная, «О проекте», «Мифы», разделы
+
+#### Вариант 2 (максимально просто, но “не идеально”): оставить SQLite
+
+SQLite подходит для локалки, но для “настоящего” сервера это рискованно:
+
+- файл БД может потеряться при пересборке/перезапуске контейнера
+- сложно делать бэкапы/миграции
+- параллельные записи ограничены
+
+Если всё же хотите SQLite на VPS, то нужно:
+
+- хранить файл БД на постоянном диске (volume)
+- регулярно делать бэкап `test.db`
+- понимать, что это не вариант для нагрузки
+
+### Бэкапы (если PostgreSQL)
+
+- Делайте регулярный дамп:
+  - `pg_dump` → файл `.sql`
+- Храните бэкапы отдельно от сервера (Google Drive/Яндекс.Диск/S3)
 
 ## Структура проекта
 
-- `backend/app/main.py` — основные API-эндпоинты
+- `backend/app/main.py` — API-эндпоинты
 - `backend/app/models.py` — модели БД
 - `backend/app/schemas.py` — схемы ответов/запросов
-- `backend/app/database.py` — подключение к PostgreSQL
+- `backend/app/database.py` — подключение к БД
 - `backend/app/admin.py` — SQLAdmin
+- `backend/app/seed.py` — сидинг данных
 - `frontend/src/pages/App.tsx` — главная
 - `frontend/src/pages/SectionPage.tsx` — страницы разделов
 - `frontend/src/pages/AboutPage.tsx` — «О проекте»

@@ -63,7 +63,7 @@ const MythsPage: React.FC = () => {
       </header>
 
       <main className="mx-auto max-w-3xl px-6 pb-24 md:px-10">
-        <h1 className="myths-title-depth select-none text-7xl font-black uppercase leading-none text-purple-950/50 md:text-9xl">
+        <h1 className="myths-title-depth select-none text-7xl font-black uppercase leading-none text-purple-200/70 md:text-9xl">
           Мифы
         </h1>
 

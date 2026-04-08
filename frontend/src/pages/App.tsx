@@ -65,18 +65,18 @@ const App: React.FC = () => {
           </a>
         </header>
 
-        <div className="relative z-10 px-5 md:px-10 py-32 md:py-48">
+        <div className="relative z-10 px-5 md:px-10 py-20 md:py-32">
           <div className="max-w-full mx-auto w-full">
-            <div className="flex flex-col md:flex-row gap-8 md:gap-0">
+            <div className="flex flex-col md:flex-row gap-6 md:gap-0">
               <div className="relative z-20 md:w-1/2 md:ml-16 lg:ml-24 md:mt-12 lg:mt-16">
                 <h1 className="heading-depth text-center md:text-left text-5xl md:text-6xl lg:text-7xl font-bold text-white leading-tight drop-shadow-lg">
                   Сергей Павлович Королёв
                 </h1>
-                <p className="mt-8 text-center md:text-left text-xl md:text-2xl text-white/90 lowercase drop-shadow-md">
+                <p className="mt-6 text-center md:text-left text-xl md:text-2xl text-white/90 lowercase drop-shadow-md">
                   основоположник практической космонавтики
                 </p>
               </div>
-              <div className="relative md:w-1/2 flex justify-end -mt-8 md:-mt-0 md:-ml-8 lg:-ml-12">
+              <div className="relative md:w-1/2 flex justify-end -mt-6 md:-mt-0 md:-ml-8 lg:-ml-12">
                 <img
                   src="/media/main/korolev-face-outline.png"
                   alt="Сергей Павлович Королёв"
@@ -87,35 +87,66 @@ const App: React.FC = () => {
           </div>
         </div>
 
-        <div className="relative z-10 mt-32 pb-10 md:pb-12">
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 flex justify-between items-end gap-2 md:gap-4 h-28 md:h-32 opacity-95">
-            <svg
-              className="w-[32%] md:w-[30%] max-w-sm shrink text-accent-gold drop-shadow-[4px_4px_10px_rgba(0,0,0,0.45)]"
-              viewBox="0 0 220 100"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path
-                d="M0 100 Q15 72 28 78 T55 62 T82 70 T110 52 T138 68 T165 48 T192 58 T220 45 L220 100 Z"
-                opacity="0.88"
-              />
-            </svg>
-            <svg
-              className="w-[32%] md:w-[30%] max-w-sm shrink text-accent-gold drop-shadow-[-4px_4px_10px_rgba(0,0,0,0.45)]"
-              viewBox="0 0 220 100"
-              fill="currentColor"
-              aria-hidden
-            >
-              <path
-                d="M220 100 Q205 72 192 78 T165 62 T138 70 T110 52 T82 68 T55 48 T28 58 T0 45 L0 100 Z"
-                opacity="0.88"
-              />
-            </svg>
-          </div>
+        {/* Цитата */}
+        <div className="relative z-10 mt-16 pb-16 md:pb-20">
           {quoteText ? (
-            <div className="relative z-20 mx-auto max-w-4xl px-4 md:px-8">
-              {/* ИЗМЕНЕНО: text-base md:text-lg вместо text-sm md:text-base */}
-              <p className="text-center text-base md:text-lg text-white leading-relaxed drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] px-2">
+            <div className="relative mx-auto max-w-4xl px-4 md:px-8">
+              {/* Декоративные полумесяцы */}
+              <div className="pointer-events-none absolute inset-0 -z-10 overflow-visible">
+                <div className="absolute left-0 top-1/2 -translate-x-16 -translate-y-1/2">
+                  <svg
+                    aria-hidden
+                    width="200"
+                    height="140"
+                    viewBox="0 0 200 140"
+                    className="md:w-[260px] md:h-[180px]"
+                  >
+                    <defs>
+                      <linearGradient id="crescentLeft" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#F59E0B" stopOpacity="0" />
+                        <stop offset="30%" stopColor="#F59E0B" stopOpacity="0.8" />
+                        <stop offset="50%" stopColor="#F59E0B" stopOpacity="1" />
+                        <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M160 20 C120 35, 80 65, 80 100 C80 135, 120 165, 160 180"
+                      stroke="url(#crescentLeft)"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
+                </div>
+                <div className="absolute right-0 top-1/2 translate-x-16 -translate-y-1/2">
+                  <svg
+                    aria-hidden
+                    width="200"
+                    height="140"
+                    viewBox="0 0 200 140"
+                    className="md:w-[260px] md:h-[180px]"
+                  >
+                    <defs>
+                      <linearGradient id="crescentRight" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#F59E0B" stopOpacity="0" />
+                        <stop offset="30%" stopColor="#F59E0B" stopOpacity="0.8" />
+                        <stop offset="50%" stopColor="#F59E0B" stopOpacity="1" />
+                        <stop offset="70%" stopColor="#F59E0B" stopOpacity="0.8" />
+                        <stop offset="100%" stopColor="#F59E0B" stopOpacity="0" />
+                      </linearGradient>
+                    </defs>
+                    <path
+                      d="M40 20 C80 35, 120 65, 120 100 C120 135, 80 165, 40 180"
+                      stroke="url(#crescentRight)"
+                      strokeWidth="10"
+                      strokeLinecap="round"
+                      fill="none"
+                    />
+                  </svg>
+                </div>
+              </div>
+              <p className="text-center text-base md:text-lg text-white leading-relaxed drop-shadow-[0_2px_12px_rgba(0,0,0,0.85)] px-8 py-4 md:px-16 md:py-6">
                 «{quoteText}»
               </p>
             </div>
@@ -156,7 +187,7 @@ const App: React.FC = () => {
         </EventModal>
       </section>
 
-      {/* Слайд 3 */}
+      {/* Слайд 3 - Максимально широкое расстояние между кнопками */}
       <section className="min-h-screen px-4 pb-20 pt-12 md:pt-20 flex flex-col justify-center bg-gradient-to-b from-korolev-bg via-korolev-panel/40 to-black">
         <div className="mb-10 text-center">
           <h2 className="heading-depth text-3xl md:text-4xl font-bold text-accent-gold">
@@ -179,7 +210,22 @@ const App: React.FC = () => {
             </span>
           </h2>
         </div>
-        <RocketNav sections={sections} />
+        
+        {/* Максимальное расширение - кнопки будут по краям экрана */}
+        <div className="w-full px-2 md:px-4">
+          <div className="flex justify-between items-center w-full">
+            <div className="flex-1 flex justify-start">
+              {/* Левые кнопки будут здесь через RocketNav */}
+            </div>
+            <div className="flex-1 flex justify-end">
+              {/* Правые кнопки будут здесь через RocketNav */}
+            </div>
+          </div>
+          {/* Сам RocketNav с кастомными классами для максимального расстояния */}
+          <div className="-mx-4 md:-mx-8 lg:-mx-16">
+            <RocketNav sections={sections} />
+          </div>
+        </div>
       </section>
     </div>
   );

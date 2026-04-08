@@ -6,10 +6,12 @@ body {
   @apply bg-korolev-bg text-white antialiased;
 }
 
-main p,
-main li,
-main figcaption,
-main blockquote {
+/* Выравнивание текста по ширине по всему сайту.
+   Tailwind-классы вроде `text-center`/`text-left` всё равно переопределят это при необходимости. */
+p,
+li,
+figcaption,
+blockquote {
   text-align: justify;
 }
 
