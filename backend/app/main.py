@@ -2,12 +2,12 @@ import os
 import json
 from .seed import seed_if_empty
 from typing import List, Optional
-from dotenv import load_dotenv
+# from dotenv import load_dotenv
 from fastapi import Depends, FastAPI, HTTPException, Path, Query
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.orm import Session
 
-load_dotenv()
+# load_dotenv()
 
 from . import admin, models, schemas
 from .database import SessionLocal, engine
